@@ -55,7 +55,7 @@ def get_pipeline():
                                         use_safetensors=True)
 
     PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-        "RunDiffusion/Juggernaut-XL-v9",
+        "rubbrband/albedobaseXL_v21",
         torch_dtype=torch.float16,
         add_watermarker=False,
         controlnet=controlnet,
