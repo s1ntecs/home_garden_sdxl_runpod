@@ -14,6 +14,7 @@ RUN apt update && \
       libglib2.0-0 libsm6 libgl1 libxrender1 libxext6 \
       ffmpeg procps && \
     rm -rf /var/lib/apt/lists/*
+RUN git lfs install
 
 WORKDIR /workspace
 
