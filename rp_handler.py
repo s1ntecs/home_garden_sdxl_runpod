@@ -72,7 +72,8 @@ controlnet = [
 ]
 
 PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-    "RunDiffusion/Juggernaut-XL-v9",
+    # "RunDiffusion/Juggernaut-XL-v9",
+    "SG161222/RealVisXL_V5.0",
     controlnet=controlnet,
     torch_dtype=DTYPE,
     variant="fp16" if DTYPE == torch.float16 else None,
