@@ -63,11 +63,11 @@ def pil_to_b64(img: Image.Image) -> str:
 controlnet = [
     ControlNetModel.from_pretrained(
         "SargeZT/sdxl-controlnet-seg",
-        torch_dtype=DTYPE, variant="fp16" if DTYPE == torch.float16 else None
+        torch_dtype=DTYPE
     ),
     ControlNetModel.from_pretrained(
         "diffusers/controlnet-canny-sdxl-1.0",
-        torch_dtype=DTYPE, variant="fp16" if DTYPE == torch.float16 else None
+        torch_dtype=DTYPE
     )
 ]
 
