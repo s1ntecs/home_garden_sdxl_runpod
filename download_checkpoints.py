@@ -61,6 +61,8 @@ def get_pipeline():
         add_watermarker=False,
         controlnet=controlnet,
         vae=vae,
+        use_safetensors=True,
+        resume_download=True,
     ).to(DEVICE)
     PIPELINE.scheduler = UniPCMultistepScheduler.from_config(
         PIPELINE.scheduler.config)

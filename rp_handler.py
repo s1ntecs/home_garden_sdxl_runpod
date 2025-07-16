@@ -80,6 +80,8 @@ PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
     safety_checker=None,
     requires_safety_checker=False,
     add_watermarker=False,
+    use_safetensors=True,
+    resume_download=True,
 )
 PIPELINE.scheduler = UniPCMultistepScheduler.from_config(
     PIPELINE.scheduler.config)
