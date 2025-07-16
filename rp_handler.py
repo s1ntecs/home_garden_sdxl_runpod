@@ -72,7 +72,7 @@ controlnet = [
 ]
 
 PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-base-1.0",
+    "RunDiffusion/Juggernaut-XL-v9",
     controlnet=controlnet,
     torch_dtype=DTYPE,
     variant="fp16" if DTYPE == torch.float16 else None,
