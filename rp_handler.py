@@ -212,7 +212,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
             negative_prompt=negative_prompt,
             image=input_image,
             mask_image=mask_pil,
-            control_image=control_images,
+            control_image=[seg_pil, canny_pil],
             controlnet_conditioning_scale=[seg_scale, canny_scale],
             control_guidance_start=[seg_g_start, canny_g_start],
             control_guidance_end=[seg_g_end, canny_g_end],
@@ -220,7 +220,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
             num_inference_steps=steps,
             guidance_scale=guidance_scale,
             generator=generator,
-            # num_images_per_prompt=num_images,
+            num_images_per_prompt=1,
             height=input_image.height, width=input_image.width
         ).images
 
