@@ -176,15 +176,27 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         # ---- маска из сегментов ----
         unique_colors = [tuple(c) for c in np.unique(color_seg.reshape(-1, 3), axis=0)]
         seg_items = [map_colors_rgb(c) for c in unique_colors]
+        logger.info(f"[MASK] unique segments: {seg_items}")                  ### LOG
+        logger.info(f"[MASK] items to remove: {mask_items}")                 ### LOG
+
         chosen, _ = filter_items(unique_colors, seg_items, mask_items)
+        logger.info(f"[MASK] chosen segment colors: {chosen}")
         mask_np = np.zeros_like(color_seg)
+        
         for c in chosen:
             mask_np[(color_seg == c).all(axis=2)] = 1
+        masked_pixels = int(mask_np.sum())
+        logger.info(f"[MASK] masked pixels count: {masked_pixels}")
+        
+        
         mask_pil = Image.fromarray((mask_np * 255).astype(np.uint8)).convert("RGB")
+        
         mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=mask_blur_radius))
-
+        
         # ---- canny ----
         canny_pil = canny_detector(input_image)
+        logger.info(f"[CANNY] size: {canny_pil.size}")  
+        
         # canny_pil = np.array(input_image)
         # canny_pil = cv2.Canny(canny_pil, 100, 200)
         # canny_pil = canny_pil[:, :, None]
