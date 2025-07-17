@@ -104,7 +104,7 @@ seg_image_processor = AutoImageProcessor.from_pretrained(
 image_segmentor = SegformerForSemanticSegmentation.from_pretrained(
     "nvidia/segformer-b5-finetuned-ade-640-640"
 )
-canny_detector = CannyDetector.from_pretrained("lllyasviel/Annotators")
+canny_detector = CannyDetector()
 hed_detector = HEDdetector.from_pretrained("lllyasviel/Annotators")
 
 CURRENT_LORA = "None"
