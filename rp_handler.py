@@ -186,7 +186,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         canny_pil = canny_detector(input_image)
         canny_pil = canny_pil.resize(input_image.size)
 
-        control_images = [seg_pil, canny_pil]
+        # control_images = [seg_pil, canny_pil]
         control_images = [
             [seg_pil] * num_images,
             [canny_pil] * num_images
