@@ -11,7 +11,7 @@ controlnet-aux
 Pillow
 mediapipe
 
-huggingface-hub==0.25.0
+huggingface-hub
 
 aiohttp
 pyyaml

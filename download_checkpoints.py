@@ -12,7 +12,7 @@ from diffusers import (
 from controlnet_aux import MLSDdetector, HEDdetector
 from transformers import AutoImageProcessor, SegformerForSemanticSegmentation
 
-from huggingface_hub import hf_hub_download
+# from huggingface_hub import hf_hub_download
 
 # ------------------------- каталоги -------------------------
 os.makedirs("loras", exist_ok=True)
@@ -29,13 +29,13 @@ LORA_NAMES = [
 def fetch_checkpoints() -> None:
     """Скачиваем SD-чекпойнт, LoRA-файлы и все внешние зависимости."""
 
-    for fname in LORA_NAMES:
-        hf_hub_download(
-            repo_id="sintecs/interior",
-            filename=fname,
-            local_dir="loras",
-            local_dir_use_symlinks=False,
-        )
+    # for fname in LORA_NAMES:
+    #     hf_hub_download(
+    #         repo_id="sintecs/interior",
+    #         filename=fname,
+    #         local_dir="loras",
+    #         local_dir_use_symlinks=False,
+    #     )
 
 
 # ------------------------- пайплайн -------------------------
