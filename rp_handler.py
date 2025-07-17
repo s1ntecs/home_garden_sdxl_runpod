@@ -88,14 +88,14 @@ PIPELINE.scheduler = UniPCMultistepScheduler.from_config(
 PIPELINE.enable_xformers_memory_efficient_attention()
 PIPELINE.to(DEVICE)
 
-REFINER = StableDiffusionXLImg2ImgPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-refiner-1.0",
-    torch_dtype=DTYPE,
-    variant="fp16" if DTYPE == torch.float16 else None,
-    safety_checker=None,
-)
-REFINER.scheduler = DDIMScheduler.from_config(REFINER.scheduler.config)
-REFINER.to(DEVICE)
+# REFINER = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+#     "stabilityai/stable-diffusion-xl-refiner-1.0",
+#     torch_dtype=DTYPE,
+#     variant="fp16" if DTYPE == torch.float16 else None,
+#     safety_checker=None,
+# )
+# REFINER.scheduler = DDIMScheduler.from_config(REFINER.scheduler.config)
+# REFINER.to(DEVICE)
 
 # --- детекторы / сегментатор --- #
 seg_image_processor = AutoImageProcessor.from_pretrained(
@@ -211,15 +211,16 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
 
         # ---- up-scale через рефайнер ----
         final = []
+        final = images
         torch.cuda.empty_cache()
-        for im in images:
-            im = im.resize((orig_w, orig_h), Image.Resampling.LANCZOS).convert("RGB")
-            ref = REFINER(
-                prompt=prompt, image=im, strength=refiner_strength,
-                num_inference_steps=refiner_steps, guidance_scale=refiner_scale
-            ).images[0]
-            final.append(ref)
-
+        # for im in images:
+        #     im = im.resize((orig_w, orig_h), Image.Resampling.LANCZOS).convert("RGB")
+        #     ref = REFINER(
+        #         prompt=prompt, image=im, strength=refiner_strength,
+        #         num_inference_steps=refiner_steps, guidance_scale=refiner_scale
+        #     ).images[0]
+        #     final.append(ref)
+        
         return {
             "images_base64": [pil_to_b64(i) for i in final],
             "time": round(time.time() - job["created"], 2) if "created" in job else None,
