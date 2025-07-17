@@ -25,10 +25,10 @@ COPY requirements.txt .
 RUN pip3 install --upgrade pip && \
     pip3 install \
       torch==2.4.0 torchvision==0.19.0 \
-        --index-url https://download.pytorch.org/whl/cu124 && \
-    pip3 install \
-      xformers==0.0.28.post1 --index-url https://download.pytorch.org/whl/cu124 && \
-    pip3 install --no-cache-dir -r requirements.txt
+        --index-url https://download.pytorch.org/whl/cu124
+    # pip3 install \
+    #   xformers==0.0.28.post1 --index-url https://download.pytorch.org/whl/cu124
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # 4) Копируем остальной код
 COPY . .

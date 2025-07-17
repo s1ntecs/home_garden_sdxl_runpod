@@ -1,5 +1,6 @@
 diffusers==0.34.0
 transformers==4.45.0
+xformers
 accelerate
 opencv-python
 scipy
