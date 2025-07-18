@@ -73,8 +73,8 @@ controlnet = [
 ]
 
 PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-    # "RunDiffusion/Juggernaut-XL-v9",
-    "SG161222/RealVisXL_V5.0",
+    "RunDiffusion/Juggernaut-XL-v9",
+    # "SG161222/RealVisXL_V5.0",
     controlnet=controlnet,
     torch_dtype=DTYPE,
     variant="fp16" if DTYPE == torch.float16 else None,
@@ -182,29 +182,19 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         chosen, _ = filter_items(unique_colors, seg_items, mask_items)
         logger.info(f"[MASK] chosen segment colors: {chosen}")
         mask_np = np.zeros_like(color_seg)
-        
+
         for c in chosen:
             mask_np[(color_seg == c).all(axis=2)] = 1
         masked_pixels = int(mask_np.sum())
         logger.info(f"[MASK] masked pixels count: {masked_pixels}")
-        
-        
+
         mask_pil = Image.fromarray((mask_np * 255).astype(np.uint8)).convert("RGB")
-        
+
         mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=mask_blur_radius))
-        
+
         # ---- canny ----
         canny_pil = canny_detector(input_image)
         logger.info(f"[CANNY] size: {canny_pil.size}")  
-        
-        # canny_pil = np.array(input_image)
-        # canny_pil = cv2.Canny(canny_pil, 100, 200)
-        # canny_pil = canny_pil[:, :, None]
-        # canny_pil = np.concatenate([canny_pil, canny_pil, canny_pil], axis=2)
-        # canny_pil = Image.fromarray(canny_pil)
-
-
-        control_images = [seg_pil, canny_pil]
 
         # ------------------ генерация ---------------- #
         images = PIPELINE(
