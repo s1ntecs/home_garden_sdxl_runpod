@@ -9,7 +9,7 @@ from diffusers import (
     ControlNetModel, UniPCMultistepScheduler, DDIMScheduler
 )
 
-from controlnet_aux import CannyDetector, HEDdetector
+from controlnet_aux import CannyDetector, HEDdetector, ZoeDetector
 from transformers import AutoImageProcessor, SegformerForSemanticSegmentation
 
 from colors import ade_palette
@@ -67,7 +67,7 @@ controlnet = [
         torch_dtype=DTYPE
     ),
     ControlNetModel.from_pretrained(
-        "diffusers/controlnet-canny-sdxl-1.0",
+        "diffusers/controlnet-zoe-depth-sdxl-1.0",
         torch_dtype=DTYPE
     )
 ]
@@ -105,8 +105,10 @@ seg_image_processor = AutoImageProcessor.from_pretrained(
 image_segmentor = SegformerForSemanticSegmentation.from_pretrained(
     "nvidia/segformer-b5-finetuned-ade-640-640"
 )
-canny_detector = CannyDetector()
-hed_detector = HEDdetector.from_pretrained("lllyasviel/Annotators")
+# canny_detector = CannyDetector()
+# hed_detector = HEDdetector.from_pretrained("lllyasviel/Annotators")
+
+zoe = ZoeDetector.from_pretrained("lllyasviel/Annotators").to(DEVICE)
 
 CURRENT_LORA = "None"
 
@@ -176,8 +178,8 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         # ---- маска из сегментов ----
         unique_colors = [tuple(c) for c in np.unique(color_seg.reshape(-1, 3), axis=0)]
         seg_items = [map_colors_rgb(c) for c in unique_colors]
-        logger.info(f"[MASK] unique segments: {seg_items}")                  ### LOG
-        logger.info(f"[MASK] items to remove: {mask_items}")                 ### LOG
+        logger.info(f"[MASK] unique segments: {seg_items}")
+        logger.info(f"[MASK] items to remove: {mask_items}")
 
         chosen, _ = filter_items(unique_colors, seg_items, mask_items)
         logger.info(f"[MASK] chosen segment colors: {chosen}")
@@ -193,16 +195,21 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=mask_blur_radius))
 
         # ---- canny ----
-        canny_pil = canny_detector(input_image)
-        logger.info(f"[CANNY] size: {canny_pil.size}")  
+        # canny_pil = canny_detector(input_image)
+        # logger.info(f"[CANNY] size: {canny_pil.size}")  
 
+        # ---- depth --------------------------------------------------------------
+        depth_np = (zoe(image_pil) * 255).clip(0, 255).astype("uint8")
+        depth_cond = Image.fromarray(depth_np).resize(
+             (orig_w, orig_h)
+         ).convert("RGB")
         # ------------------ генерация ---------------- #
         images = PIPELINE(
             prompt=prompt,
             negative_prompt=negative_prompt,
             image=input_image,
             mask_image=mask_pil,
-            control_image=[seg_pil, canny_pil],
+            control_image=[seg_pil, depth_cond],
             controlnet_conditioning_scale=[seg_scale, canny_scale],
             control_guidance_start=[seg_g_start, canny_g_start],
             control_guidance_end=[seg_g_end, canny_g_end],

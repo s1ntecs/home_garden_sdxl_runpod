@@ -9,7 +9,7 @@ from diffusers import (
     StableDiffusionXLImg2ImgPipeline
 )
 
-from controlnet_aux import MLSDdetector, HEDdetector
+from controlnet_aux import MLSDdetector, HEDdetector, ZoeDetector
 from transformers import AutoImageProcessor, SegformerForSemanticSegmentation
 
 # from huggingface_hub import hf_hub_download
@@ -46,8 +46,8 @@ def get_pipeline():
             torch_dtype=DTYPE,
         ),
         ControlNetModel.from_pretrained(
-            "diffusers/controlnet-canny-sdxl-1.0",
-            torch_dtype=DTYPE,
+            "diffusers/controlnet-zoe-depth-sdxl-1.0",
+            torch_dtype=DTYPE
         )
     ]
     vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
@@ -83,6 +83,8 @@ def get_pipeline():
     )
     MLSDdetector.from_pretrained("lllyasviel/Annotators")
     HEDdetector.from_pretrained("lllyasviel/Annotators")
+    zoe = ZoeDetector.from_pretrained(
+        "lllyasviel/Annotators")
     return
 
 
