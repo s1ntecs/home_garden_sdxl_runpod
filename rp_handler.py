@@ -193,7 +193,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         unique_colors = [tuple(c) for c in np.unique(color_seg.reshape(-1, 3), axis=0)]
         seg_items = [map_colors_rgb(c) for c in unique_colors]
         logger.info(f"[MASK] unique segments: {seg_items}")
-        logger.info(f"[MASK] items to remove: {mask_items}")
+        logger.info(f"[MASK] target mask segments: {mask_items}")
 
         # chosen, _ = filter_items(unique_colors, seg_items, mask_items)
         # выбираем только сегменты указанные в mask_items_raw
