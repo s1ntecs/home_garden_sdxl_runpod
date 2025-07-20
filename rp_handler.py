@@ -215,7 +215,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
 
         # ---- canny ----
         # canny_pil = canny_detector(input_image)
-        # logger.info(f"[CANNY] size: {canny_pil.size}")  
+        # logger.info(f"[CANNY] size: {canny_pil.size}")
 
         # ---- depth --------------------------------------------------------------
         depth_cond = midas(image_pil)
