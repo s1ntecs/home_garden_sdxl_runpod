@@ -9,7 +9,7 @@ from diffusers import (
     ControlNetModel, UniPCMultistepScheduler, DDIMScheduler
 )
 
-from controlnet_aux import CannyDetector, HEDdetector, ZoeDetector
+from controlnet_aux import MidasDetector
 from transformers import AutoImageProcessor, SegformerForSemanticSegmentation
 
 from colors import ade_palette
@@ -24,6 +24,14 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 MAX_STEPS = 250
 TARGET_RES = 1024  # SDXL рекомендует 1024×1024
+
+POOL_GROUND_ALLOW = [
+    "grass", "lawn", "field", "earth", "dirt", "soil",
+    "ground", "sand", "gravel",
+    "floor", "floor-wood", "floor-tile", "floor-marble", "floor-other",
+    "pavement", "sidewalk", "path", "trail", "courtyard", "deck", "patio"
+]
+
 
 logger = RunPodLogger()
 
@@ -67,17 +75,20 @@ controlnet = [
         torch_dtype=DTYPE
     ),
     ControlNetModel.from_pretrained(
-        "diffusers/controlnet-zoe-depth-sdxl-1.0",
-        torch_dtype=DTYPE
+        "diffusers/controlnet-depth-sdxl-1.0",
+        torch_dtype=DTYPE,
+        use_safetensors=True
     )
 ]
 
 PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-    "RunDiffusion/Juggernaut-XL-v9",
+    # "RunDiffusion/Juggernaut-XL-v9",
     # "SG161222/RealVisXL_V5.0",
+    # "misri/cyberrealisticPony_v90Alt1",
+    "John6666/epicrealism-xl-vxvii-crystal-clear-realism-sdxl",
     controlnet=controlnet,
     torch_dtype=DTYPE,
-    variant="fp16" if DTYPE == torch.float16 else None,
+    # variant="fp16" if DTYPE == torch.float16 else None,
     safety_checker=None,
     requires_safety_checker=False,
     add_watermarker=False,
@@ -108,7 +119,7 @@ image_segmentor = SegformerForSemanticSegmentation.from_pretrained(
 # canny_detector = CannyDetector()
 # hed_detector = HEDdetector.from_pretrained("lllyasviel/Annotators")
 
-zoe = ZoeDetector.from_pretrained("lllyasviel/Annotators").to(DEVICE)
+midas = MidasDetector.from_pretrained("lllyasviel/ControlNet")
 
 CURRENT_LORA = "None"
 
@@ -142,10 +153,10 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         # control scales
         seg_scale = float(payload.get("segment_conditioning_scale", 0.4))
         seg_g_start = float(payload.get("segment_guidance_start", 0.0))
-        seg_g_end = float(payload.get("segment_guidance_end", 0.5))
-        canny_scale = float(payload.get("canny_conditioning_scale", 0.4))
-        canny_g_start = float(payload.get("canny_guidance_start", 0.0))
-        canny_g_end = float(payload.get("canny_guidance_end", 0.5))
+        seg_g_end = float(payload.get("segment_guidance_end", 0.8))
+        depth_scale = float(payload.get("depth_conditioning_scale", 0.4))
+        depth_g_start = float(payload.get("depth_guidance_start", 0.0))
+        depth_g_end = float(payload.get("depth_guidance_end", 0.8))
 
         mask_items_raw = payload.get("mask_items", [])
         if isinstance(mask_items_raw, str):
@@ -153,22 +164,25 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         elif isinstance(mask_items_raw, list):
             mask_items = [str(s) for s in mask_items_raw]
         else:
-            mask_items = ["windowpane;window", "column;pillar", "door;double;door"]
+            mask_items = POOL_GROUND_ALLOW
 
         mask_blur_radius = float(payload.get("mask_blur_radius", 3))
 
         # ---------- препроцессинг входа ------------
         image_pil = url_to_pil(image_url)
         orig_w, orig_h = image_pil.size
-        #   
+
         # input_image = image_pil.resize((new_w, new_h))
         input_image = image_pil
 
         # ---- сегментация ----
         with torch.inference_mode(), torch.autocast(DEVICE):
-            pixel = seg_image_processor(input_image, return_tensors="pt").pixel_values
+            pixel = seg_image_processor(
+                input_image,
+                return_tensors="pt").pixel_values
             outputs = image_segmentor(pixel)
-        seg = seg_image_processor.post_process_semantic_segmentation(outputs, target_sizes=[input_image.size[::-1]])[0]
+        seg = seg_image_processor.post_process_semantic_segmentation(
+            outputs, target_sizes=[input_image.size[::-1]])[0]
         palette = np.array(ade_palette())
         color_seg = np.zeros((*seg.shape, 3), dtype=np.uint8)
         for label, color in enumerate(palette):
@@ -181,7 +195,10 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         logger.info(f"[MASK] unique segments: {seg_items}")
         logger.info(f"[MASK] items to remove: {mask_items}")
 
-        chosen, _ = filter_items(unique_colors, seg_items, mask_items)
+        # chosen, _ = filter_items(unique_colors, seg_items, mask_items)
+        # выбираем только сегменты указанные в mask_items_raw
+        chosen = [c for c, name in zip(unique_colors,
+                                       seg_items) if name in mask_items]
         logger.info(f"[MASK] chosen segment colors: {chosen}")
         mask_np = np.zeros_like(color_seg)
 
@@ -190,19 +207,18 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         masked_pixels = int(mask_np.sum())
         logger.info(f"[MASK] masked pixels count: {masked_pixels}")
 
-        mask_pil = Image.fromarray((mask_np * 255).astype(np.uint8)).convert("RGB")
+        mask_pil = Image.fromarray(
+            (mask_np * 255).astype(np.uint8)).convert("RGB")
 
-        mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=mask_blur_radius))
+        mask_pil = mask_pil.filter(
+            ImageFilter.GaussianBlur(radius=mask_blur_radius))
 
         # ---- canny ----
         # canny_pil = canny_detector(input_image)
         # logger.info(f"[CANNY] size: {canny_pil.size}")  
 
         # ---- depth --------------------------------------------------------------
-        depth_np = (zoe(image_pil) * 255).clip(0, 255).astype("uint8")
-        depth_cond = Image.fromarray(depth_np).resize(
-             (orig_w, orig_h)
-         ).convert("RGB")
+        depth_cond = midas(image_pil)
         # ------------------ генерация ---------------- #
         images = PIPELINE(
             prompt=prompt,
@@ -210,9 +226,9 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
             image=input_image,
             mask_image=mask_pil,
             control_image=[seg_pil, depth_cond],
-            controlnet_conditioning_scale=[seg_scale, canny_scale],
-            control_guidance_start=[seg_g_start, canny_g_start],
-            control_guidance_end=[seg_g_end, canny_g_end],
+            controlnet_conditioning_scale=[seg_scale, depth_scale],
+            control_guidance_start=[seg_g_start, depth_g_start],
+            control_guidance_end=[seg_g_end, depth_g_end],
             strength=prompt_strength,
             num_inference_steps=steps,
             guidance_scale=guidance_scale,

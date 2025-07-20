@@ -9,7 +9,7 @@ from diffusers import (
     StableDiffusionXLImg2ImgPipeline
 )
 
-from controlnet_aux import MLSDdetector, HEDdetector, ZoeDetector
+from controlnet_aux import MidasDetector
 from transformers import AutoImageProcessor, SegformerForSemanticSegmentation
 
 # from huggingface_hub import hf_hub_download
@@ -55,13 +55,15 @@ def get_pipeline():
                                         use_safetensors=True)
 
     PIPELINE = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-        "RunDiffusion/Juggernaut-XL-v9",
+        # "RunDiffusion/Juggernaut-XL-v9",
         # "SG161222/RealVisXL_V5.0",
+        # "misri/cyberrealisticPony_v90Alt1",
+        "John6666/epicrealism-xl-vxvii-crystal-clear-realism-sdxl",
         torch_dtype=torch.float16,
         add_watermarker=False,
         controlnet=controlnet,
         vae=vae,
-        variant="fp16",
+        # variant="fp16",
         use_safetensors=True,
         resume_download=True,
     ).to(DEVICE)
@@ -81,10 +83,8 @@ def get_pipeline():
     SegformerForSemanticSegmentation.from_pretrained(
         "nvidia/segformer-b5-finetuned-ade-640-640"
     )
-    MLSDdetector.from_pretrained("lllyasviel/Annotators")
-    HEDdetector.from_pretrained("lllyasviel/Annotators")
-    zoe = ZoeDetector.from_pretrained(
-        "lllyasviel/Annotators")
+    MidasDetector.from_pretrained("lllyasviel/ControlNet")
+
     return
 
 
